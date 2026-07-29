@@ -26,6 +26,7 @@
             <input type="file" id="imageInput" accept="image/*" hidden>
           </label>
           <button id="addBoxBtn" type="button" disabled>+ Dodaj pole tekstowe</button>
+          <button id="addImageBoxBtn" type="button" disabled>+ Dodaj pole na zdjęcie</button>
           <button id="deleteBoxBtn" type="button" disabled>Usuń zaznaczone pole</button>
         </div>
         <div class="canvas-wrap" id="editorCanvasWrap">
@@ -84,6 +85,37 @@
           </div>
           <div class="field"><label>Interlinia</label><input type="number" id="propLineHeight" min="0.8" max="3" step="0.05"></div>
           <p class="hint">Przeciągnij pole na obrazie, aby je przesunąć. Chwyć uchwyt w prawym dolnym rogu, aby zmienić rozmiar.</p>
+        </div>
+
+        <div id="imageBoxProps" class="box-props hidden">
+          <h3>Właściwości pola na zdjęcie</h3>
+          <div class="field"><label>Etykieta</label><input type="text" id="imgPropLabel"></div>
+          <div class="field"><label>Dopasowanie zdjęcia</label>
+            <select id="imgPropFit">
+              <option value="cover">Wypełnij (przytnij nadmiar)</option>
+              <option value="contain">Zmieść całość</option>
+            </select>
+          </div>
+          <div class="field"><label>Zaokrąglenie rogów</label><input type="range" id="imgPropRadius" min="0" max="0.5" step="0.01"></div>
+          <p class="hint">Przeciągnij pole na obrazie, aby je przesunąć. Chwyć uchwyt w prawym dolnym rogu, aby zmienić rozmiar. Samo zdjęcie wgrywa się później, przy generowaniu każdego slajdu.</p>
+        </div>
+
+        <div class="box-props" id="dotsProps">
+          <h3>Kropki postępu (opcjonalnie)</h3>
+          <label class="field-row checkboxes"><input type="checkbox" id="dotsEnabled"> Pokazuj kropki postępu karuzeli</label>
+          <div class="field-row">
+            <div class="field"><label>Pozycja X</label><input type="range" id="dotsX" min="0" max="1" step="0.01"></div>
+            <div class="field"><label>Pozycja Y</label><input type="range" id="dotsY" min="0" max="1" step="0.01"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Rozmiar kropki</label><input type="range" id="dotsSize" min="0.005" max="0.06" step="0.002"></div>
+            <div class="field"><label>Odstęp</label><input type="range" id="dotsGap" min="0" max="0.05" step="0.002"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Kolor aktywny</label><input type="color" id="dotsActiveColor"></div>
+            <div class="field"><label>Kolor nieaktywny</label><input type="color" id="dotsInactiveColor"></div>
+          </div>
+          <p class="hint">Liczba kropek dopasuje się automatycznie do liczby slajdów, które utworzysz w zakładce „Generuj karuzelę”.</p>
         </div>
 
         <div class="save-load">

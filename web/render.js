@@ -96,3 +96,105 @@ function drawTextBox(ctx, box, text, canvasWidth, canvasHeight) {
 
   ctx.restore();
 }
+
+function roundedRectPath(ctx, x, y, w, h, radius) {
+  const r = Math.max(0, Math.min(radius, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// image: an already-loaded HTMLImageElement (or equivalent drawImage source).
+// box: image box definition with fractional x/y/width/height (0..1), fit ("cover"|"contain"),
+// and cornerRadius (fraction of the box's shorter side, 0..0.5).
+function drawImageBox(ctx, box, image, canvasWidth, canvasHeight) {
+  const px = box.x * canvasWidth;
+  const py = box.y * canvasHeight;
+  const pw = box.width * canvasWidth;
+  const ph = box.height * canvasHeight;
+
+  ctx.save();
+  const radius = (box.cornerRadius || 0) * Math.min(pw, ph);
+  if (radius > 0) {
+    roundedRectPath(ctx, px, py, pw, ph, radius);
+    ctx.clip();
+  } else {
+    ctx.beginPath();
+    ctx.rect(px, py, pw, ph);
+    ctx.clip();
+  }
+
+  if (image) {
+    const iw = image.naturalWidth || image.width;
+    const ih = image.naturalHeight || image.height;
+    const boxRatio = pw / ph;
+    const imgRatio = iw / ih;
+    let dw = pw, dh = ph, dx = px, dy = py;
+
+    if (box.fit === "contain") {
+      if (imgRatio > boxRatio) {
+        dw = pw;
+        dh = pw / imgRatio;
+      } else {
+        dh = ph;
+        dw = ph * imgRatio;
+      }
+      dx = px + (pw - dw) / 2;
+      dy = py + (ph - dh) / 2;
+    } else {
+      // cover (default): fill the box, cropping overflow.
+      if (imgRatio > boxRatio) {
+        dh = ph;
+        dw = ph * imgRatio;
+      } else {
+        dw = pw;
+        dh = pw / imgRatio;
+      }
+      dx = px + (pw - dw) / 2;
+      dy = py + (ph - dh) / 2;
+    }
+    ctx.drawImage(image, dx, dy, dw, dh);
+  } else {
+    ctx.fillStyle = "#c9cdd6";
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = "#6b7280";
+    ctx.font = `${Math.max(14, ph * 0.08)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(box.label || "Zdjęcie", px + pw / 2, py + ph / 2);
+  }
+  ctx.restore();
+}
+
+// config: { enabled, x, y, dotSize, gap, activeColor, inactiveColor, inactiveBorderColor }
+// x/y/dotSize/gap are fractions of canvasWidth. total/current are 1-based slide count/index.
+function drawProgressDots(ctx, config, total, currentIndex, canvasWidth, canvasHeight) {
+  if (!config || !config.enabled || !total) return;
+  const dotSize = (config.dotSize || 0.022) * canvasWidth;
+  const gap = (config.gap || 0.012) * canvasWidth;
+  const startX = (config.x ?? 0.08) * canvasWidth;
+  const centerY = (config.y ?? 0.9) * canvasHeight;
+
+  ctx.save();
+  for (let i = 0; i < total; i++) {
+    const cx = startX + i * (dotSize + gap) + dotSize / 2;
+    const active = i <= currentIndex;
+    ctx.beginPath();
+    ctx.arc(cx, centerY, dotSize / 2, 0, Math.PI * 2);
+    if (active) {
+      ctx.fillStyle = config.activeColor || "#D2B069";
+      ctx.fill();
+    } else {
+      ctx.fillStyle = config.inactiveColor || "#ffffff";
+      ctx.fill();
+      ctx.lineWidth = Math.max(1, dotSize * 0.06);
+      ctx.strokeStyle = config.inactiveBorderColor || "#D2B069";
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}

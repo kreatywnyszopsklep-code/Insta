@@ -17,8 +17,9 @@ function uid(prefix) {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function defaultBox(n) {
+function defaultTextBox(n) {
   return {
+    type: "text",
     id: uid("box"),
     label: `Pole ${n}`,
     x: 0.1,
@@ -38,6 +39,33 @@ function defaultBox(n) {
   };
 }
 
+function defaultImageBox(n) {
+  return {
+    type: "image",
+    id: uid("img"),
+    label: `Zdjęcie ${n}`,
+    x: 0.15,
+    y: 0.3,
+    width: 0.7,
+    height: 0.3,
+    fit: "cover",
+    cornerRadius: 0,
+  };
+}
+
+function defaultProgressDots() {
+  return {
+    enabled: false,
+    x: 0.08,
+    y: 0.9,
+    dotSize: 0.022,
+    gap: 0.012,
+    activeColor: "#D2B069",
+    inactiveColor: "#ffffff",
+    inactiveBorderColor: "#D2B069",
+  };
+}
+
 /* -------------------------------------------------------------------- */
 /* EDITOR (tab 1)                                                        */
 /* -------------------------------------------------------------------- */
@@ -48,6 +76,8 @@ const editor = {
   selectedId: null,
   drag: null, // { mode: 'move'|'resize', boxId, startX, startY, orig }
   counter: 0,
+  imgCounter: 0,
+  progressDots: defaultProgressDots(),
 };
 
 const editorCanvas = document.getElementById("editorCanvas");
@@ -67,6 +97,7 @@ document.getElementById("imageInput").addEventListener("change", (e) => {
       editorCanvas.height = img.naturalHeight;
       editorEmptyHint.style.display = "none";
       document.getElementById("addBoxBtn").disabled = false;
+      document.getElementById("addImageBoxBtn").disabled = false;
       document.getElementById("saveTemplateBtn").disabled = false;
       renderEditorCanvas();
     };
@@ -77,7 +108,16 @@ document.getElementById("imageInput").addEventListener("change", (e) => {
 
 document.getElementById("addBoxBtn").addEventListener("click", () => {
   editor.counter += 1;
-  const box = defaultBox(editor.counter);
+  const box = defaultTextBox(editor.counter);
+  editor.boxes.push(box);
+  selectBox(box.id);
+  renderBoxList();
+  renderEditorCanvas();
+});
+
+document.getElementById("addImageBoxBtn").addEventListener("click", () => {
+  editor.imgCounter += 1;
+  const box = defaultImageBox(editor.imgCounter);
   editor.boxes.push(box);
   selectBox(box.id);
   renderBoxList();
@@ -100,11 +140,17 @@ function selectBox(id) {
   editor.selectedId = id;
   const box = getSelectedBox();
   document.getElementById("deleteBoxBtn").disabled = !box;
-  const propsPanel = document.getElementById("boxProps");
-  if (!box) {
-    propsPanel.classList.add("hidden");
-  } else {
-    propsPanel.classList.remove("hidden");
+  const textPanel = document.getElementById("boxProps");
+  const imagePanel = document.getElementById("imageBoxProps");
+  textPanel.classList.add("hidden");
+  imagePanel.classList.add("hidden");
+  if (box && box.type === "image") {
+    imagePanel.classList.remove("hidden");
+    document.getElementById("imgPropLabel").value = box.label;
+    document.getElementById("imgPropFit").value = box.fit;
+    document.getElementById("imgPropRadius").value = box.cornerRadius;
+  } else if (box) {
+    textPanel.classList.remove("hidden");
     document.getElementById("propLabel").value = box.label;
     document.getElementById("propFont").value = box.fontFamily;
     document.getElementById("propSize").value = box.fontSize;
@@ -127,7 +173,8 @@ function renderBoxList() {
     const row = document.createElement("div");
     row.className = "box-list-item" + (box.id === editor.selectedId ? " selected" : "");
     const label = document.createElement("span");
-    label.textContent = box.label;
+    const badge = box.type === "image" ? "[zdjęcie] " : "[tekst] ";
+    label.textContent = badge + box.label;
     row.appendChild(label);
     const remove = document.createElement("span");
     remove.className = "remove";
@@ -168,6 +215,51 @@ propBindings.forEach(([elId, prop, kind]) => {
     if (!box) return;
     box[prop] = kind === "number" ? Number(e.target.value) : kind === "checked" ? e.target.checked : e.target.value;
     if (prop === "label") renderBoxList();
+    renderEditorCanvas();
+  });
+});
+
+const imgPropBindings = [
+  ["imgPropLabel", "label", "value"],
+  ["imgPropFit", "fit", "value"],
+  ["imgPropRadius", "cornerRadius", "number"],
+];
+imgPropBindings.forEach(([elId, prop, kind]) => {
+  document.getElementById(elId).addEventListener("input", (e) => {
+    const box = getSelectedBox();
+    if (!box) return;
+    box[prop] = kind === "number" ? Number(e.target.value) : e.target.value;
+    if (prop === "label") renderBoxList();
+    renderEditorCanvas();
+  });
+});
+
+/* Progress dots settings ------------------------------------------------ */
+function initDotsPanel() {
+  document.getElementById("dotsEnabled").checked = editor.progressDots.enabled;
+  document.getElementById("dotsX").value = editor.progressDots.x;
+  document.getElementById("dotsY").value = editor.progressDots.y;
+  document.getElementById("dotsSize").value = editor.progressDots.dotSize;
+  document.getElementById("dotsGap").value = editor.progressDots.gap;
+  document.getElementById("dotsActiveColor").value = editor.progressDots.activeColor;
+  document.getElementById("dotsInactiveColor").value = editor.progressDots.inactiveColor;
+}
+initDotsPanel();
+
+const dotsBindings = [
+  ["dotsEnabled", "enabled", "checked"],
+  ["dotsX", "x", "number"],
+  ["dotsY", "y", "number"],
+  ["dotsSize", "dotSize", "number"],
+  ["dotsGap", "gap", "number"],
+  ["dotsActiveColor", "activeColor", "value"],
+  ["dotsInactiveColor", "inactiveColor", "value"],
+];
+dotsBindings.forEach(([elId, prop, kind]) => {
+  document.getElementById(elId).addEventListener("input", (e) => {
+    editor.progressDots[prop] =
+      kind === "number" ? Number(e.target.value) : kind === "checked" ? e.target.checked : e.target.value;
+    if (prop === "activeColor") editor.progressDots.inactiveBorderColor = e.target.value;
     renderEditorCanvas();
   });
 });
@@ -254,7 +346,11 @@ function renderEditorCanvas() {
   editorCtx.drawImage(editor.image, 0, 0, w, h);
 
   editor.boxes.forEach((box) => {
-    drawTextBox(editorCtx, box, box.label || "Przykładowy tekst", w, h);
+    if (box.type === "image") {
+      drawImageBox(editorCtx, box, null, w, h);
+    } else {
+      drawTextBox(editorCtx, box, box.label || "Przykładowy tekst", w, h);
+    }
 
     const px = box.x * w, py = box.y * h, pw = box.width * w, ph = box.height * h;
     const selected = box.id === editor.selectedId;
@@ -271,6 +367,10 @@ function renderEditorCanvas() {
       editorCtx.fillRect(px + pw - handleSize / 2, py + ph - handleSize / 2, handleSize, handleSize);
     }
   });
+
+  if (editor.progressDots.enabled) {
+    drawProgressDots(editorCtx, editor.progressDots, 5, 1, w, h);
+  }
 }
 
 /* Save / load template ------------------------------------------------ */
@@ -282,7 +382,9 @@ document.getElementById("saveTemplateBtn").addEventListener("click", () => {
     imageDataUrl: editor.imageDataUrl,
     width: editor.image.naturalWidth,
     height: editor.image.naturalHeight,
-    textBoxes: editor.boxes,
+    textBoxes: editor.boxes.filter((b) => b.type !== "image"),
+    imageBoxes: editor.boxes.filter((b) => b.type === "image"),
+    progressDots: editor.progressDots,
   };
   const blob = new Blob([JSON.stringify(template, null, 2)], { type: "application/json" });
   downloadBlob(blob, `${slugify(name)}.json`);
@@ -301,8 +403,12 @@ document.getElementById("loadTemplateInput").addEventListener("change", (e) => {
 
 function loadTemplateIntoEditor(template) {
   document.getElementById("templateName").value = template.name || "";
-  editor.boxes = template.textBoxes || [];
+  const textBoxes = (template.textBoxes || []).map((b) => ({ ...b, type: "text" }));
+  const imageBoxes = (template.imageBoxes || []).map((b) => ({ ...b, type: "image" }));
+  editor.boxes = [...textBoxes, ...imageBoxes];
   editor.selectedId = null;
+  editor.progressDots = { ...defaultProgressDots(), ...(template.progressDots || {}) };
+  initDotsPanel();
   const img = new Image();
   img.onload = () => {
     editor.image = img;
@@ -311,6 +417,7 @@ function loadTemplateIntoEditor(template) {
     editorCanvas.height = template.height || img.naturalHeight;
     editorEmptyHint.style.display = "none";
     document.getElementById("addBoxBtn").disabled = false;
+    document.getElementById("addImageBoxBtn").disabled = false;
     document.getElementById("saveTemplateBtn").disabled = false;
     renderBoxList();
     renderEditorCanvas();
@@ -373,7 +480,8 @@ function loadTemplateIntoGenerator(template) {
     gen.slides = [emptySlide(template)];
     gen.index = 0;
     genEmptyHint.style.display = "none";
-    document.getElementById("genTemplateStatus").textContent = `Szablon: ${template.name || "bez nazwy"} (${(template.textBoxes || []).length} pól)`;
+    const fieldCount = (template.textBoxes || []).length + (template.imageBoxes || []).length;
+    document.getElementById("genTemplateStatus").textContent = `Szablon: ${template.name || "bez nazwy"} (${fieldCount} pól)`;
     renderSlideForm();
     renderGenCanvas();
   };
@@ -383,7 +491,9 @@ function loadTemplateIntoGenerator(template) {
 function emptySlide(template) {
   const values = {};
   (template.textBoxes || []).forEach((b) => (values[b.id] = ""));
-  return { values };
+  const images = {};
+  (template.imageBoxes || []).forEach((b) => (images[b.id] = null));
+  return { values, images };
 }
 
 function currentSlide() {
@@ -394,6 +504,64 @@ function renderSlideForm() {
   const form = document.getElementById("slideForm");
   form.innerHTML = "";
   if (!gen.template) return;
+
+  (gen.template.imageBoxes || []).forEach((box) => {
+    const field = document.createElement("div");
+    field.className = "field";
+    const label = document.createElement("label");
+    label.textContent = box.label;
+    field.appendChild(label);
+
+    const current = currentSlide().images[box.id];
+    if (current) {
+      const preview = document.createElement("img");
+      preview.src = current.dataUrl;
+      preview.className = "image-field-preview";
+      field.appendChild(preview);
+    }
+
+    const row = document.createElement("div");
+    row.className = "field-row";
+    const fileLabel = document.createElement("label");
+    fileLabel.className = "file-btn secondary small";
+    fileLabel.textContent = current ? "Zmień zdjęcie" : "Wgraj zdjęcie";
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+    fileInput.hidden = true;
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          currentSlide().images[box.id] = { dataUrl: reader.result, img };
+          renderSlideForm();
+          renderGenCanvas();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    fileLabel.appendChild(fileInput);
+    row.appendChild(fileLabel);
+
+    if (current) {
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.textContent = "Usuń";
+      removeBtn.addEventListener("click", () => {
+        currentSlide().images[box.id] = null;
+        renderSlideForm();
+        renderGenCanvas();
+      });
+      row.appendChild(removeBtn);
+    }
+    field.appendChild(row);
+    form.appendChild(field);
+  });
+
   gen.template.textBoxes.forEach((box) => {
     const field = document.createElement("div");
     field.className = "field";
@@ -452,10 +620,15 @@ function renderGenCanvas() {
   const w = genCanvas.width, h = genCanvas.height;
   genCtx.clearRect(0, 0, w, h);
   genCtx.drawImage(gen.image, 0, 0, w, h);
-  const values = currentSlide().values;
-  gen.template.textBoxes.forEach((box) => {
-    drawTextBox(genCtx, box, values[box.id] || "", w, h);
+  const slide = currentSlide();
+  (gen.template.imageBoxes || []).forEach((box) => {
+    const entry = slide.images[box.id];
+    drawImageBox(genCtx, box, entry ? entry.img : null, w, h);
   });
+  gen.template.textBoxes.forEach((box) => {
+    drawTextBox(genCtx, box, slide.values[box.id] || "", w, h);
+  });
+  drawProgressDots(genCtx, gen.template.progressDots, gen.slides.length, gen.index, w, h);
 }
 
 /* Bulk paste ------------------------------------------------------------ */

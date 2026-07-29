@@ -5,10 +5,11 @@ created with the web editor (web/index.html).
 Usage:
     python3 scripts/generate.py --template szablon.json --content tresci.json [--outdir output] [--zip]
 
-template.json  - exported from the web editor (image + text box positions/styles).
-content.json   - {"slides": [{"<Etykieta pola>": "tekst", ...}, ...]}
-                  Keys are matched against each text box's label (case-insensitive)
-                  or its internal id.
+template.json  - exported from the web editor (background + text/image box positions/styles).
+content.json   - {"slides": [{"<Etykieta pola>": "tekst lub ścieżka do zdjęcia", ...}, ...]}
+                  Keys are matched against each box's label (case-insensitive) or its
+                  internal id. For image boxes, the value is a path to a photo file
+                  (relative paths are resolved against content.json's directory).
 """
 import argparse
 import base64
@@ -145,6 +146,63 @@ def draw_text_box(draw, box, text, canvas_w, canvas_h, font_cache):
         draw.text((x, baseline_y), line, font=font, fill=color, anchor=anchor)
 
 
+def composite_image_box(base_image, box, photo, canvas_w, canvas_h):
+    if photo is None:
+        return
+    px = round(box["x"] * canvas_w)
+    py = round(box["y"] * canvas_h)
+    pw = round(box["width"] * canvas_w)
+    ph = round(box["height"] * canvas_h)
+    if pw <= 0 or ph <= 0:
+        return
+
+    photo = photo.convert("RGBA")
+    iw, ih = photo.size
+    fit = box.get("fit", "cover")
+    scale = min(pw / iw, ph / ih) if fit == "contain" else max(pw / iw, ph / ih)
+    new_w, new_h = max(1, round(iw * scale)), max(1, round(ih * scale))
+    resized = photo.resize((new_w, new_h), Image.LANCZOS)
+
+    if fit == "contain":
+        dx = px + (pw - new_w) // 2
+        dy = py + (ph - new_h) // 2
+        base_image.paste(resized, (dx, dy), resized)
+        return
+
+    left = (new_w - pw) // 2
+    top = (new_h - ph) // 2
+    cropped = resized.crop((left, top, left + pw, top + ph))
+
+    radius = round(box.get("cornerRadius", 0) * min(pw, ph))
+    if radius > 0:
+        mask = Image.new("L", (pw, ph), 0)
+        ImageDraw.Draw(mask).rounded_rectangle([0, 0, pw, ph], radius=radius, fill=255)
+        base_image.paste(cropped, (px, py), mask)
+    else:
+        base_image.paste(cropped, (px, py))
+
+
+def draw_progress_dots(draw, config, total, current_index, canvas_w, canvas_h):
+    if not config or not config.get("enabled") or not total:
+        return
+    dot_size = config.get("dotSize", 0.022) * canvas_w
+    gap = config.get("gap", 0.012) * canvas_w
+    start_x = config.get("x", 0.08) * canvas_w
+    center_y = config.get("y", 0.9) * canvas_h
+    active_color = config.get("activeColor", "#D2B069")
+    inactive_color = config.get("inactiveColor", "#ffffff")
+    inactive_border = config.get("inactiveBorderColor", "#D2B069")
+
+    for i in range(total):
+        cx = start_x + i * (dot_size + gap) + dot_size / 2
+        r = dot_size / 2
+        bbox = [cx - r, center_y - r, cx + r, center_y + r]
+        if i <= current_index:
+            draw.ellipse(bbox, fill=active_color)
+        else:
+            draw.ellipse(bbox, fill=inactive_color, outline=inactive_border, width=max(1, round(dot_size * 0.06)))
+
+
 def load_template(template_path):
     template_path = Path(template_path)
     data = json.loads(template_path.read_text(encoding="utf-8"))
@@ -175,7 +233,8 @@ def slugify(name):
 
 def generate(template_path, content_path, outdir, prefix=None, make_zip=False):
     template, base_image = load_template(template_path)
-    content = json.loads(Path(content_path).read_text(encoding="utf-8"))
+    content_path = Path(content_path)
+    content = json.loads(content_path.read_text(encoding="utf-8"))
     slides = content["slides"]
 
     canvas_w = template.get("width", base_image.width)
@@ -187,14 +246,31 @@ def generate(template_path, content_path, outdir, prefix=None, make_zip=False):
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
+    image_boxes = template.get("imageBoxes", [])
+    progress_dots = template.get("progressDots")
+    total_slides = len(slides)
+
     font_cache = {}
     output_paths = []
     for i, slide in enumerate(slides, start=1):
         image = base_image.copy()
+
+        for box in image_boxes:
+            photo_ref = get_slide_value(slide, box)
+            photo = None
+            if photo_ref:
+                photo_path = Path(photo_ref)
+                if not photo_path.is_absolute():
+                    photo_path = content_path.parent / photo_path
+                photo = Image.open(photo_path)
+            composite_image_box(image, box, photo, canvas_w, canvas_h)
+
         draw = ImageDraw.Draw(image)
         for box in template["textBoxes"]:
             text = get_slide_value(slide, box)
             draw_text_box(draw, box, text, canvas_w, canvas_h, font_cache)
+        draw_progress_dots(draw, progress_dots, total_slides, i - 1, canvas_w, canvas_h)
+
         out_path = outdir / f"{prefix}-{i:02d}.png"
         image.convert("RGB").save(out_path, "PNG")
         output_paths.append(out_path)

@@ -207,6 +207,18 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--text);
   border-color: var(--border);
 }
+.file-btn.small {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.image-field-preview {
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
 
 .status-text { font-size: 0.82rem; color: var(--muted); }
 

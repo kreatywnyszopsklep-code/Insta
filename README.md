@@ -24,18 +24,26 @@ Otwórz `http://localhost:8000` w przeglądarce (albo po prostu otwórz plik
 
 ### 1. Zakładka „Szablon”
 - Wgraj obraz szablonu (np. eksport z Canvy/Figmy w proporcji karuzeli, np. 1080×1350).
-- Kliknij „+ Dodaj pole tekstowe”, przeciągnij pole w docelowe miejsce,
-  chwyć uchwyt w prawym dolnym rogu, żeby zmienić rozmiar.
-- Dla zaznaczonego pola ustaw etykietę (np. „Nagłówek”, „Treść”), czcionkę,
+- Kliknij „+ Dodaj pole tekstowe” albo „+ Dodaj pole na zdjęcie”, przeciągnij
+  pole w docelowe miejsce, chwyć uchwyt w prawym dolnym rogu, żeby zmienić
+  rozmiar. Oba typy pól używa się tak samo (przeciąganie/zmiana rozmiaru),
+  różnią się tylko panelem właściwości.
+- Dla pola tekstowego ustaw etykietę (np. „Nagłówek”, „Treść”), czcionkę,
   rozmiar, kolor, wyrównanie i interlinię. „Auto-dopasuj rozmiar” zmniejsza
-  czcionkę, jeśli tekst się nie mieści.
+  czcionkę, jeśli tekst się nie mieści. Dla pola na zdjęcie ustaw etykietę,
+  sposób dopasowania (wypełnij/zmieść) i zaokrąglenie rogów — samo zdjęcie
+  wgrywa się później, osobno dla każdego slajdu.
+- Opcjonalnie włącz „Kropki postępu karuzeli” (np. ●●●○○○) — ich liczba
+  dopasuje się automatycznie do liczby slajdów utworzonych w generatorze.
 - Nadaj nazwę szablonowi i kliknij „Zapisz szablon (.json)” — powstanie jeden
   plik `.json` z osadzonym obrazem, w pełni przenośny.
 
 ### 2. Zakładka „Generuj karuzelę”
 - Wczytaj zapisany `template.json`.
-- Wypełnij pola dla każdego slajdu (przyciski „+ Nowy slajd” / „Usuń slajd”),
-  albo skorzystaj z „Wklej teksty dla wielu slajdów naraz” w formacie:
+- Wypełnij pola dla każdego slajdu: teksty w polach tekstowych, a dla pól na
+  zdjęcie — wgraj plik graficzny (przyciski „+ Nowy slajd” / „Usuń slajd”
+  przełączają między slajdami). Do tekstu możesz też użyć „Wklej teksty dla
+  wielu slajdów naraz” w formacie:
   ```
   Nagłówek: Tytuł slajdu 1
   Treść: Opis pierwszego slajdu...
@@ -43,7 +51,8 @@ Otwórz `http://localhost:8000` w przeglądarce (albo po prostu otwórz plik
   Nagłówek: Tytuł slajdu 2
   Treść: Opis drugiego slajdu...
   ```
-- Pobierz pojedynczy slajd (PNG) albo całą karuzelę naraz (ZIP).
+- Pobierz pojedynczy slajd (PNG) albo całą karuzelę naraz (ZIP). Kropki
+  postępu (jeśli włączone) same pokażą właściwy numer slajdu.
 
 ## Szybki start — skrypt Pythona
 
@@ -53,20 +62,27 @@ python3 scripts/generate.py --template szablon.json --content tresci.json --outd
 ```
 
 `content.json` zawiera treści dla kolejnych slajdów — klucze to etykiety pól
-ustawione w edytorze (np. „Nagłówek”, „Treść”):
+ustawione w edytorze (np. „Nagłówek”, „Treść”). Dla pól na zdjęcie podaje się
+ścieżkę do pliku graficznego (względną wobec `content.json` albo bezwzględną):
 
 ```json
 {
   "slides": [
-    { "Nagłówek": "Tytuł slajdu 1", "Treść": "Treść pierwszego slajdu..." },
+    { "Nagłówek": "Tytuł slajdu 1", "Treść": "Treść...", "Zdjęcie": "zdjecia/slajd1.jpg" },
     { "Nagłówek": "Tytuł slajdu 2", "Treść": "Treść drugiego slajdu..." }
   ]
 }
 ```
 
-Zobacz gotowy przykład w `examples/` (`template.json` + `content.json`) —
-uruchomienie powyższej komendy na tych plikach generuje 5 gotowych slajdów
-w `examples/output/`.
+Pole na zdjęcie można w danym slajdzie pominąć (jak w drugim przykładzie
+powyżej) — wtedy tło pozostaje bez zdjęcia.
+
+Zobacz gotowe przykłady w `examples/`:
+- `examples/template.json` + `content.json` — prosty szablon tekstowy (5 slajdów).
+- `examples/kreatywnyszop/` — pełny przykład z polem na zdjęcie i kropkami
+  postępu, zbudowany na podstawie stylu marki (beżowe tło, falująca linia,
+  logo, strzałka). Uruchomienie `generate.py` na tych plikach odtwarza
+  4-slajdową karuzelę w `examples/kreatywnyszop/output/`.
 
 ### Generowanie przez Claude'a
 
@@ -81,7 +97,7 @@ web/                   aplikacja webowa (edytor + generator)
   index.html
   style.css
   app.js                logika edytora i generatora
-  render.js              wspólna logika rysowania tekstu (używana też jako wzorzec dla generate.py)
+  render.js              wspólna logika rysowania tekstu/zdjęć/kropek (wzorzec też dla generate.py)
   zip.js                 samodzielny zapis plików .zip (bez zależności)
 scripts/
   generate.py            generator CLI w Pythonie (Pillow)
@@ -90,6 +106,7 @@ examples/
   template.png            przykładowy obraz szablonu
   template.json            przykładowy szablon (z osadzonym obrazem)
   content.json              przykładowe treści 5 slajdów
+  kreatywnyszop/            przykład z polem na zdjęcie + kropkami postępu
 requirements.txt
 ```
 
@@ -113,13 +130,30 @@ requirements.txt
       "bold": true, "italic": false,
       "lineHeight": 1.15, "autoFit": true
     }
-  ]
+  ],
+  "imageBoxes": [
+    {
+      "id": "zdjecie",
+      "label": "Zdjęcie",
+      "x": 0.62, "y": 0.56, "width": 0.34, "height": 0.22,
+      "fit": "cover", "cornerRadius": 0.06
+    }
+  ],
+  "progressDots": {
+    "enabled": true,
+    "x": 0.08, "y": 0.958,
+    "dotSize": 0.024, "gap": 0.010,
+    "activeColor": "#D2B069", "inactiveColor": "#ffffff", "inactiveBorderColor": "#D2B069"
+  }
 }
 ```
 
 `x`, `y`, `width`, `height` są ułamkami (0–1) rozmiaru obrazu, więc szablon
 działa niezależnie od rozdzielczości. `autoFit` zmniejsza czcionkę do
-`minFontSize`, jeśli tekst nie mieści się w polu.
+`minFontSize`, jeśli tekst nie mieści się w polu. `fit: "cover"` przycina
+zdjęcie, żeby wypełniło całe pole (jak CSS `object-fit: cover`), `"contain"`
+mieści całe zdjęcie bez przycinania. `progressDots` jest opcjonalny — liczba
+kropek to zawsze liczba slajdów w danej karuzeli, a nie stała wartość.
 
 ## Czcionki (`scripts/generate.py`)
 
