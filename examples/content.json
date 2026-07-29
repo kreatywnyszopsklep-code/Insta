@@ -1,0 +1,29 @@
+{
+  "slides": [
+    {
+      "Nagłówek": "5 sposobów na lepsze karuzele",
+      "Treść": "Zanim zaczniesz projektować, poznaj kilka zasad, które zwiększają zasięgi i czas oglądania Twoich postów.",
+      "Numer": "1/5"
+    },
+    {
+      "Nagłówek": "1. Mocny pierwszy slajd",
+      "Treść": "To on decyduje, czy ktoś kliknie 'więcej'. Użyj konkretnej obietnicy albo pytania, które dotyka realnego problemu odbiorcy.",
+      "Numer": "2/5"
+    },
+    {
+      "Nagłówek": "2. Jedna myśl na slajd",
+      "Treść": "Nie upychaj kilku pomysłów w jednym kadrze. Krótkie, czytelne zdania są łatwiejsze do zapamiętania i udostępnienia.",
+      "Numer": "3/5"
+    },
+    {
+      "Nagłówek": "3. Spójna kolorystyka",
+      "Treść": "Trzymaj się jednego szablonu i palety barw w całej karuzeli, żeby profil wyglądał profesjonalnie i rozpoznawalnie.",
+      "Numer": "4/5"
+    },
+    {
+      "Nagłówek": "4. Wyraźne CTA na końcu",
+      "Treść": "Ostatni slajd to najlepsze miejsce na zaproszenie do komentarza, zapisu lub udostępnienia posta.",
+      "Numer": "5/5"
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kreator karuzeli na Instagram</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Kreator karuzeli na Instagram</h1>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="editor" type="button">1. Szablon</button>
+    <button class="tab-btn" data-tab="generator" type="button">2. Generuj karuzelę</button>
+  </nav>
+</header>
+
+<main>
+  <!-- TAB 1: template editor -->
+  <section id="tab-editor" class="tab-panel active">
+    <div class="workspace">
+      <div class="canvas-area">
+        <div class="canvas-toolbar">
+          <label class="file-btn">
+            Wgraj szablon (obraz)
+            <input type="file" id="imageInput" accept="image/*" hidden>
+          </label>
+          <button id="addBoxBtn" type="button" disabled>+ Dodaj pole tekstowe</button>
+          <button id="deleteBoxBtn" type="button" disabled>Usuń zaznaczone pole</button>
+        </div>
+        <div class="canvas-wrap" id="editorCanvasWrap">
+          <canvas id="editorCanvas"></canvas>
+          <p class="empty-hint" id="editorEmptyHint">Wgraj obraz szablonu, aby zacząć</p>
+        </div>
+      </div>
+      <aside class="sidebar">
+        <div class="field">
+          <label>Nazwa szablonu</label>
+          <input type="text" id="templateName" placeholder="np. Karuzela porady">
+        </div>
+
+        <div class="box-list" id="boxList"></div>
+
+        <div id="boxProps" class="box-props hidden">
+          <h3>Właściwości pola</h3>
+          <div class="field"><label>Etykieta</label><input type="text" id="propLabel"></div>
+          <div class="field"><label>Czcionka</label>
+            <select id="propFont">
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'DejaVu Sans', sans-serif">DejaVu Sans</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Times New Roman', serif">Times New Roman</option>
+              <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+              <option value="Impact, sans-serif">Impact</option>
+              <option value="'Courier New', monospace">Courier New</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Rozmiar czcionki</label><input type="number" id="propSize" min="8" max="300"></div>
+            <div class="field"><label>Min. rozmiar</label><input type="number" id="propMinSize" min="6" max="300"></div>
+          </div>
+          <div class="field"><label>Kolor tekstu</label><input type="color" id="propColor"></div>
+          <div class="field-row checkboxes">
+            <label><input type="checkbox" id="propBold"> Pogrubienie</label>
+            <label><input type="checkbox" id="propItalic"> Kursywa</label>
+            <label><input type="checkbox" id="propAutoFit"> Auto-dopasuj rozmiar</label>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Wyrównanie poziome</label>
+              <select id="propAlign">
+                <option value="left">Do lewej</option>
+                <option value="center">Do środka</option>
+                <option value="right">Do prawej</option>
+              </select>
+            </div>
+            <div class="field"><label>Wyrównanie pionowe</label>
+              <select id="propValign">
+                <option value="top">Góra</option>
+                <option value="middle">Środek</option>
+                <option value="bottom">Dół</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label>Interlinia</label><input type="number" id="propLineHeight" min="0.8" max="3" step="0.05"></div>
+          <p class="hint">Przeciągnij pole na obrazie, aby je przesunąć. Chwyć uchwyt w prawym dolnym rogu, aby zmienić rozmiar.</p>
+        </div>
+
+        <div class="save-load">
+          <button id="saveTemplateBtn" type="button" disabled>Zapisz szablon (.json)</button>
+          <label class="file-btn secondary">
+            Wczytaj szablon
+            <input type="file" id="loadTemplateInput" accept=".json" hidden>
+          </label>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- TAB 2: carousel generator -->
+  <section id="tab-generator" class="tab-panel">
+    <div class="workspace">
+      <div class="canvas-area">
+        <div class="canvas-toolbar">
+          <label class="file-btn">
+            Wczytaj szablon
+            <input type="file" id="genTemplateInput" accept=".json" hidden>
+          </label>
+          <span id="genTemplateStatus" class="status-text">Brak wczytanego szablonu</span>
+        </div>
+        <div class="canvas-wrap" id="genCanvasWrap">
+          <canvas id="genCanvas"></canvas>
+          <p class="empty-hint" id="genEmptyHint">Wczytaj zapisany szablon (.json), aby zacząć generować karuzelę</p>
+        </div>
+      </div>
+      <aside class="sidebar">
+        <div class="slide-nav">
+          <button id="prevSlideBtn" type="button">←</button>
+          <span id="slideIndicator">Slajd 1 / 1</span>
+          <button id="nextSlideBtn" type="button">→</button>
+        </div>
+        <div class="field-row">
+          <button id="addSlideBtn" type="button">+ Nowy slajd</button>
+          <button id="deleteSlideBtn" type="button">Usuń slajd</button>
+        </div>
+
+        <div id="slideForm" class="slide-form"></div>
+
+        <details class="bulk-paste">
+          <summary>Wklej teksty dla wielu slajdów naraz</summary>
+          <p class="hint">Format: <code>Etykieta: treść</code> w kolejnych liniach (etykiety takie jak w szablonie), slajdy oddzielone linią <code>---</code>.</p>
+          <textarea id="bulkText" rows="8" placeholder="Nagłówek: Tytuł slajdu 1&#10;Treść: Opis...&#10;---&#10;Nagłówek: Tytuł slajdu 2&#10;Treść: Opis..."></textarea>
+          <button id="applyBulkBtn" type="button">Zastosuj do slajdów</button>
+        </details>
+
+        <div class="export-actions">
+          <button id="downloadCurrentBtn" type="button">Pobierz bieżący slajd (PNG)</button>
+          <button id="downloadAllBtn" type="button">Pobierz całą karuzelę (ZIP)</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<script src="render.js"></script>
+<script src="zip.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
