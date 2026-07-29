@@ -35,6 +35,11 @@ Otwórz `http://localhost:8000` w przeglądarce (albo po prostu otwórz plik
   wgrywa się później, osobno dla każdego slajdu.
 - Opcjonalnie włącz „Kropki postępu karuzeli” (np. ●●●○○○) — ich liczba
   dopasuje się automatycznie do liczby slajdów utworzonych w generatorze.
+- Dla pola tekstowego możesz włączyć „Podkreślenie ostatniej linii” (np. pod
+  nagłówkiem) i wybrać jego kolor.
+- Możesz dodać „Warianty tła” (np. jaśniejszą i ciemniejszą wersję) — kolejne
+  slajdy karuzeli będą je cyklicznie zmieniać, tak jak w naprzemiennych
+  postach na Instagramie.
 - Nadaj nazwę szablonowi i kliknij „Zapisz szablon (.json)” — powstanie jeden
   plik `.json` z osadzonym obrazem, w pełni przenośny.
 
@@ -128,7 +133,8 @@ requirements.txt
       "color": "#ffffff",
       "align": "left", "valign": "top",
       "bold": true, "italic": false,
-      "lineHeight": 1.15, "autoFit": true
+      "lineHeight": 1.15, "autoFit": true,
+      "underline": true, "underlineColor": "#D2B069"
     }
   ],
   "imageBoxes": [
@@ -144,7 +150,8 @@ requirements.txt
     "x": 0.08, "y": 0.958,
     "dotSize": 0.024, "gap": 0.010,
     "activeColor": "#D2B069", "inactiveColor": "#ffffff", "inactiveBorderColor": "#D2B069"
-  }
+  },
+  "backgroundVariants": ["data:image/png;base64,...", "data:image/png;base64,..."]
 }
 ```
 
@@ -154,6 +161,11 @@ działa niezależnie od rozdzielczości. `autoFit` zmniejsza czcionkę do
 zdjęcie, żeby wypełniło całe pole (jak CSS `object-fit: cover`), `"contain"`
 mieści całe zdjęcie bez przycinania. `progressDots` jest opcjonalny — liczba
 kropek to zawsze liczba slajdów w danej karuzeli, a nie stała wartość.
+`underline` rysuje podwójną kreskę pod ostatnią linią tekstu danego pola
+(np. pod nagłówkiem), na wzór odręcznego podkreślenia. `backgroundVariants`
+jest opcjonalny — lista dodatkowych teł, które cyklicznie zmieniają się co
+slajd (np. naprzemiennie jasne/ciemne tło); bez niego używane jest zawsze
+`imageDataUrl`.
 
 ## Czcionki (`scripts/generate.py`)
 

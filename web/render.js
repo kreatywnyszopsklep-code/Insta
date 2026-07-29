@@ -94,6 +94,37 @@ function drawTextBox(ctx, box, text, canvasWidth, canvasHeight) {
     ctx.fillText(line, x, baseline);
   });
 
+  if (box.underline && lines.length) {
+    const lastLine = lines[lines.length - 1];
+    const lastLineWidth = ctx.measureText(lastLine).width;
+    const lastLineTop = startY + (lines.length - 1) * lineHeight;
+    const baseline = lastLineTop + size * 0.8;
+
+    let lineStartX;
+    if (box.align === "left") lineStartX = px;
+    else if (box.align === "right") lineStartX = px + pw - lastLineWidth;
+    else lineStartX = px + pw / 2 - lastLineWidth / 2;
+
+    const underlineColor = box.underlineColor || "#D2B069";
+    const strokeWidth = Math.max(2, size * 0.05);
+    const gap = size * 0.14;
+    const inset = lastLineWidth * 0.04;
+
+    ctx.strokeStyle = underlineColor;
+    ctx.lineCap = "round";
+    ctx.lineWidth = strokeWidth;
+
+    ctx.beginPath();
+    ctx.moveTo(lineStartX, baseline + gap);
+    ctx.lineTo(lineStartX + lastLineWidth, baseline + gap);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(lineStartX + inset, baseline + gap + strokeWidth * 1.6);
+    ctx.lineTo(lineStartX + lastLineWidth - inset, baseline + gap + strokeWidth * 1.6);
+    ctx.stroke();
+  }
+
   ctx.restore();
 }
 

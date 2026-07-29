@@ -145,6 +145,35 @@ def draw_text_box(draw, box, text, canvas_w, canvas_h, font_cache):
             x, anchor = px + pw / 2, "ms"
         draw.text((x, baseline_y), line, font=font, fill=color, anchor=anchor)
 
+    if box.get("underline") and lines:
+        last_line = lines[-1]
+        last_line_width = draw.textlength(last_line, font=font)
+        last_line_top = start_y + (len(lines) - 1) * line_height
+        baseline_y = last_line_top + size * 0.8
+
+        if align == "left":
+            line_start_x = px
+        elif align == "right":
+            line_start_x = px + pw - last_line_width
+        else:
+            line_start_x = px + pw / 2 - last_line_width / 2
+
+        underline_color = box.get("underlineColor", "#D2B069")
+        stroke_width = max(2, round(size * 0.05))
+        gap = size * 0.14
+        inset = last_line_width * 0.04
+
+        y1 = round(baseline_y + gap)
+        draw.line(
+            [(line_start_x, y1), (line_start_x + last_line_width, y1)],
+            fill=underline_color, width=stroke_width,
+        )
+        y2 = round(baseline_y + gap + stroke_width * 1.6)
+        draw.line(
+            [(line_start_x + inset, y2), (line_start_x + last_line_width - inset, y2)],
+            fill=underline_color, width=stroke_width,
+        )
+
 
 def composite_image_box(base_image, box, photo, canvas_w, canvas_h):
     if photo is None:
@@ -203,17 +232,24 @@ def draw_progress_dots(draw, config, total, current_index, canvas_w, canvas_h):
             draw.ellipse(bbox, fill=inactive_color, outline=inactive_border, width=max(1, round(dot_size * 0.06)))
 
 
+def _image_from_data_url(data_url):
+    _, b64data = data_url.split(",", 1)
+    return Image.open(io.BytesIO(base64.b64decode(b64data))).convert("RGBA")
+
+
 def load_template(template_path):
     template_path = Path(template_path)
     data = json.loads(template_path.read_text(encoding="utf-8"))
     image_data_url = data.get("imageDataUrl")
     if image_data_url:
-        _, b64data = image_data_url.split(",", 1)
-        image = Image.open(io.BytesIO(base64.b64decode(b64data))).convert("RGBA")
+        image = _image_from_data_url(image_data_url)
     else:
         image_path = template_path.parent / data["image"]
         image = Image.open(image_path).convert("RGBA")
-    return data, image
+
+    variant_urls = data.get("backgroundVariants") or []
+    variants = [_image_from_data_url(v) for v in variant_urls] or [image]
+    return data, image, variants
 
 
 def get_slide_value(slide, box):
@@ -232,15 +268,14 @@ def slugify(name):
 
 
 def generate(template_path, content_path, outdir, prefix=None, make_zip=False):
-    template, base_image = load_template(template_path)
+    template, base_image, bg_variants = load_template(template_path)
     content_path = Path(content_path)
     content = json.loads(content_path.read_text(encoding="utf-8"))
     slides = content["slides"]
 
     canvas_w = template.get("width", base_image.width)
     canvas_h = template.get("height", base_image.height)
-    if base_image.size != (canvas_w, canvas_h):
-        base_image = base_image.resize((canvas_w, canvas_h))
+    bg_variants = [v if v.size == (canvas_w, canvas_h) else v.resize((canvas_w, canvas_h)) for v in bg_variants]
 
     prefix = prefix or slugify(template.get("name", "karuzela"))
     outdir = Path(outdir)
@@ -253,7 +288,7 @@ def generate(template_path, content_path, outdir, prefix=None, make_zip=False):
     font_cache = {}
     output_paths = []
     for i, slide in enumerate(slides, start=1):
-        image = base_image.copy()
+        image = bg_variants[(i - 1) % len(bg_variants)].copy()
 
         for box in image_boxes:
             photo_ref = get_slide_value(slide, box)

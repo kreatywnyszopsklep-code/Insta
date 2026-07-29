@@ -40,6 +40,16 @@
           <input type="text" id="templateName" placeholder="np. Karuzela porady">
         </div>
 
+        <div class="box-props" id="bgVariantsProps">
+          <h3>Warianty tła (opcjonalnie)</h3>
+          <p class="hint">Dodaj dodatkowe wersje tła (np. jaśniejszą i ciemniejszą) — kolejne slajdy karuzeli będą je cyklicznie zmieniać.</p>
+          <div class="box-list" id="bgVariantsList"></div>
+          <label class="file-btn secondary small">
+            + Dodaj wariant tła
+            <input type="file" id="addBgVariantInput" accept="image/*" hidden>
+          </label>
+        </div>
+
         <div class="box-list" id="boxList"></div>
 
         <div id="boxProps" class="box-props hidden">
@@ -66,7 +76,9 @@
             <label><input type="checkbox" id="propBold"> Pogrubienie</label>
             <label><input type="checkbox" id="propItalic"> Kursywa</label>
             <label><input type="checkbox" id="propAutoFit"> Auto-dopasuj rozmiar</label>
+            <label><input type="checkbox" id="propUnderline"> Podkreślenie ostatniej linii</label>
           </div>
+          <div class="field" id="underlineColorField"><label>Kolor podkreślenia</label><input type="color" id="propUnderlineColor"></div>
           <div class="field-row">
             <div class="field"><label>Wyrównanie poziome</label>
               <select id="propAlign">

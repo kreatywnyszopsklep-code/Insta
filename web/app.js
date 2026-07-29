@@ -36,6 +36,8 @@ function defaultTextBox(n) {
     italic: false,
     lineHeight: 1.25,
     autoFit: true,
+    underline: false,
+    underlineColor: "#D2B069",
   };
 }
 
@@ -78,6 +80,7 @@ const editor = {
   counter: 0,
   imgCounter: 0,
   progressDots: defaultProgressDots(),
+  bgVariants: [], // array of dataURL strings (additional background variants)
 };
 
 const editorCanvas = document.getElementById("editorCanvas");
@@ -114,6 +117,40 @@ document.getElementById("addBoxBtn").addEventListener("click", () => {
   renderBoxList();
   renderEditorCanvas();
 });
+
+document.getElementById("addBgVariantInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    editor.bgVariants.push(reader.result);
+    renderBgVariantsList();
+  };
+  reader.readAsDataURL(file);
+  e.target.value = "";
+});
+
+function renderBgVariantsList() {
+  const list = document.getElementById("bgVariantsList");
+  list.innerHTML = "";
+  editor.bgVariants.forEach((dataUrl, i) => {
+    const row = document.createElement("div");
+    row.className = "box-list-item";
+    const label = document.createElement("span");
+    label.textContent = `Wariant ${i + 1}`;
+    row.appendChild(label);
+    const remove = document.createElement("span");
+    remove.className = "remove";
+    remove.textContent = "×";
+    remove.title = "Usuń wariant";
+    remove.addEventListener("click", () => {
+      editor.bgVariants.splice(i, 1);
+      renderBgVariantsList();
+    });
+    row.appendChild(remove);
+    list.appendChild(row);
+  });
+}
 
 document.getElementById("addImageBoxBtn").addEventListener("click", () => {
   editor.imgCounter += 1;
@@ -162,6 +199,8 @@ function selectBox(id) {
     document.getElementById("propAlign").value = box.align;
     document.getElementById("propValign").value = box.valign;
     document.getElementById("propLineHeight").value = box.lineHeight;
+    document.getElementById("propUnderline").checked = !!box.underline;
+    document.getElementById("propUnderlineColor").value = box.underlineColor || "#D2B069";
   }
   renderBoxList();
 }
@@ -208,6 +247,8 @@ const propBindings = [
   ["propAlign", "align", "value"],
   ["propValign", "valign", "value"],
   ["propLineHeight", "lineHeight", "number"],
+  ["propUnderline", "underline", "checked"],
+  ["propUnderlineColor", "underlineColor", "value"],
 ];
 propBindings.forEach(([elId, prop, kind]) => {
   document.getElementById(elId).addEventListener("input", (e) => {
@@ -385,6 +426,7 @@ document.getElementById("saveTemplateBtn").addEventListener("click", () => {
     textBoxes: editor.boxes.filter((b) => b.type !== "image"),
     imageBoxes: editor.boxes.filter((b) => b.type === "image"),
     progressDots: editor.progressDots,
+    backgroundVariants: editor.bgVariants,
   };
   const blob = new Blob([JSON.stringify(template, null, 2)], { type: "application/json" });
   downloadBlob(blob, `${slugify(name)}.json`);
@@ -409,6 +451,8 @@ function loadTemplateIntoEditor(template) {
   editor.selectedId = null;
   editor.progressDots = { ...defaultProgressDots(), ...(template.progressDots || {}) };
   initDotsPanel();
+  editor.bgVariants = template.backgroundVariants || [];
+  renderBgVariantsList();
   const img = new Image();
   img.onload = () => {
     editor.image = img;
@@ -451,9 +495,18 @@ function downloadBlob(blob, filename) {
 const gen = {
   template: null,
   image: null,
+  bgImages: [],
   slides: [],
   index: 0,
 };
+
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.src = src;
+  });
+}
 
 const genCanvas = document.getElementById("genCanvas");
 const genCtx = genCanvas.getContext("2d");
@@ -470,22 +523,24 @@ document.getElementById("genTemplateInput").addEventListener("change", (e) => {
   reader.readAsText(file);
 });
 
-function loadTemplateIntoGenerator(template) {
-  const img = new Image();
-  img.onload = () => {
-    gen.template = template;
-    gen.image = img;
-    genCanvas.width = template.width || img.naturalWidth;
-    genCanvas.height = template.height || img.naturalHeight;
-    gen.slides = [emptySlide(template)];
-    gen.index = 0;
-    genEmptyHint.style.display = "none";
-    const fieldCount = (template.textBoxes || []).length + (template.imageBoxes || []).length;
-    document.getElementById("genTemplateStatus").textContent = `Szablon: ${template.name || "bez nazwy"} (${fieldCount} pól)`;
-    renderSlideForm();
-    renderGenCanvas();
-  };
-  img.src = template.imageDataUrl;
+async function loadTemplateIntoGenerator(template) {
+  const img = await loadImage(template.imageDataUrl);
+  const variantUrls = template.backgroundVariants && template.backgroundVariants.length
+    ? template.backgroundVariants
+    : [template.imageDataUrl];
+  gen.bgImages = await Promise.all(variantUrls.map(loadImage));
+
+  gen.template = template;
+  gen.image = img;
+  genCanvas.width = template.width || img.naturalWidth;
+  genCanvas.height = template.height || img.naturalHeight;
+  gen.slides = [emptySlide(template)];
+  gen.index = 0;
+  genEmptyHint.style.display = "none";
+  const fieldCount = (template.textBoxes || []).length + (template.imageBoxes || []).length;
+  document.getElementById("genTemplateStatus").textContent = `Szablon: ${template.name || "bez nazwy"} (${fieldCount} pól)`;
+  renderSlideForm();
+  renderGenCanvas();
 }
 
 function emptySlide(template) {
@@ -619,7 +674,8 @@ function renderGenCanvas() {
   if (!gen.template || !gen.image) return;
   const w = genCanvas.width, h = genCanvas.height;
   genCtx.clearRect(0, 0, w, h);
-  genCtx.drawImage(gen.image, 0, 0, w, h);
+  const bg = gen.bgImages.length ? gen.bgImages[gen.index % gen.bgImages.length] : gen.image;
+  genCtx.drawImage(bg, 0, 0, w, h);
   const slide = currentSlide();
   (gen.template.imageBoxes || []).forEach((box) => {
     const entry = slide.images[box.id];
